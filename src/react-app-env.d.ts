@@ -21,7 +21,6 @@ declare namespace NodeJS {
   }
 }
 
-// @ts-expect-error vite config
 declare let process: NodeJS.Process;
 
 declare module '*.gif' {
