@@ -78,7 +78,7 @@ module.exports = {
     'no-param-reassign': 2,
     'array-bracket-newline': [1, 'consistent'],
     'function-call-argument-newline': [1, 'consistent'],
-    'func-style': [1, 'expression'],
+    'func-style': [1, 'declaration', { allowArrowFunctions: true }],
     'id-denylist': [
       2,
       'data',
@@ -213,7 +213,6 @@ module.exports = {
     '@typescript-eslint/restrict-template-expressions': 2,
     '@typescript-eslint/no-shadow': 2,
     '@typescript-eslint/restrict-plus-operands': 2,
-    '@typescript-eslint/no-use-before-define': 2,
     '@typescript-eslint/no-unused-expressions': 2,
     '@typescript-eslint/no-floating-promises': 2,
     '@typescript-eslint/no-unused-vars': 2,
@@ -241,6 +240,7 @@ module.exports = {
 
     'react/jsx-props-no-spreading': 0, // conflicts with react-hook-form props
     'react/react-in-jsx-scope': 0,
+    '@typescript-eslint/no-use-before-define': 0,
   },
   overrides: [
     {
