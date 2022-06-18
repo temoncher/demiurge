@@ -1,0 +1,34 @@
+{
+  "name": "demiurge",
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite",
+    "lint": "eslint .",
+    "build": "tsc && vite build"
+  },
+  "dependencies": {
+    "framer-motion": "^6.3.11",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.28.0",
+    "@typescript-eslint/parser": "^5.28.0",
+    "@vitejs/plugin-react": "^1.3.2",
+    "eslint": "^8.18.0",
+    "eslint-config-airbnb-typescript": "^17.0.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-react": "^7.30.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier": "^2.7.1",
+    "typescript": "^4.6.3",
+    "vite": "^2.9.9",
+    "vite-plugin-pwa": "^0.12.0",
+    "vite-tsconfig-paths": "^3.5.0",
+    "workbox-window": "^6.5.3"
+  }
+}
