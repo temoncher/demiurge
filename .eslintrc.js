@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
+/** @type {import('eslint').Linter.Config} */
 // eslint-disable-next-line no-undef
 module.exports = {
   env: {
@@ -214,12 +215,7 @@ module.exports = {
     '@typescript-eslint/restrict-plus-operands': 2,
     '@typescript-eslint/no-use-before-define': 2,
     '@typescript-eslint/no-unused-expressions': 2,
-    '@typescript-eslint/no-floating-promises': [
-      2,
-      {
-        ignoreIIFE: true,
-      },
-    ],
+    '@typescript-eslint/no-floating-promises': 2,
     '@typescript-eslint/no-unused-vars': 2,
     '@typescript-eslint/no-loop-func': 2,
     '@typescript-eslint/unbound-method': 2,
@@ -246,4 +242,14 @@ module.exports = {
     'react/jsx-props-no-spreading': 0, // conflicts with react-hook-form props
     'react/react-in-jsx-scope': 0,
   },
+  overrides: [
+    {
+      files: ['vite.config.ts', '.eslintrc.js', '.prettierrc.js'],
+      parserOptions: {
+        project: './tsconfig.node.json',
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
+    },
+  ],
 };

@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 
-import logo from '@/logo.svg';
-
 import './App.css';
+import ReloadPrompt from './ReloadPrompt';
+import logo from './logo.svg';
 
 export default function App() {
   const [count, setCount] = useState(0);
@@ -18,7 +18,7 @@ export default function App() {
           className="App-logo"
           alt="logo"
         />
-        <p>Hello Vite + React!</p>
+        <p>Hello Vite + React! v{__APP_VERSION__}</p>
         <p>
           <button
             onClick={() => {
@@ -35,6 +35,7 @@ export default function App() {
           Learn React
         </a>
       </header>
+      <ReloadPrompt />
     </div>
   );
 }

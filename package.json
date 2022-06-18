@@ -2,9 +2,27 @@
   "name": "demiurge",
   "version": "0.0.0",
   "scripts": {
-    "dev": "vite",
     "lint": "eslint .",
-    "build": "tsc && vite build"
+    "start": "yarn run-build && yarn serve",
+    "start-reloadsw": "yarn run-build-reloadsw && yarn serve",
+    "start-claims": "yarn run-build-claims && yarn serve",
+    "start-claims-reloadsw": "yarn run-build-reloadsw-claims && yarn serve",
+    "start-sw": "yarn run-build-sw && yarn serve",
+    "start-sw-reloadsw": "yarn run-build-sw-reloadsw && yarn serve",
+    "start-sw-claims": "yarn run-build-sw-claims && yarn serve",
+    "start-sw-claims-reloadsw": "yarn run-build-sw-reloadsw-claims && yarn serve",
+    "dev": "cross-env DEBUG=vite-plugin-pwa:* SW_DEV=true vite",
+    "dev-claims": "cross-env DEBUG=vite-plugin-pwa:* SW_DEV=true CLAIMS=true SW=true vite",
+    "build": "cross-env DEBUG=vite-plugin-pwa:* BASE_URL=/ SOURCE_MAP=true vite build",
+    "run-build": "cross-env DEBUG=vite-plugin-pwa:* BASE_URL=/ SOURCE_MAP=true vite build",
+    "run-build-reloadsw": "cross-env DEBUG=vite-plugin-pwa:* BASE_URL=/ SOURCE_MAP=true RELOAD_SW=true vite build",
+    "run-build-claims": "cross-env DEBUG=vite-plugin-pwa:* BASE_URL=/ SOURCE_MAP=true CLAIMS=true vite build",
+    "run-build-reloadsw-claims": "cross-env DEBUG=vite-plugin-pwa:* BASE_URL=/ SOURCE_MAP=true CLAIMS=true RELOAD_SW=true vite build",
+    "run-build-sw": "rimraf dist && cross-env DEBUG=vite-plugin-pwa:* BASE_URL=/ SOURCE_MAP=true SW=true vite build",
+    "run-build-sw-reloadsw": "cross-env DEBUG=vite-plugin-pwa:* BASE_URL=/ SOURCE_MAP=true RELOAD_SW=true SW=true vite build",
+    "run-build-sw-claims": "cross-env DEBUG=vite-plugin-pwa:* BASE_URL=/ SOURCE_MAP=true CLAIMS=true SW=true vite build",
+    "run-build-sw-reloadsw-claims": "cross-env DEBUG=vite-plugin-pwa:* BASE_URL=/ SOURCE_MAP=true CLAIMS=true RELOAD_SW=true SW=true vite build",
+    "serve": "serve dist"
   },
   "dependencies": {
     "framer-motion": "^6.3.11",
@@ -12,11 +30,14 @@
     "react-dom": "^18.0.0"
   },
   "devDependencies": {
+    "@rollup/plugin-replace": "^4.0.0",
+    "@types/eslint": "^8.4.3",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
     "@typescript-eslint/eslint-plugin": "^5.28.0",
     "@typescript-eslint/parser": "^5.28.0",
     "@vitejs/plugin-react": "^1.3.2",
+    "cross-env": "^7.0.3",
     "eslint": "^8.18.0",
     "eslint-config-airbnb-typescript": "^17.0.0",
     "eslint-config-prettier": "^8.5.0",
@@ -24,11 +45,16 @@
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-react": "^7.30.0",
     "eslint-plugin-react-hooks": "^4.6.0",
+    "https-localhost": "^4.7.1",
     "prettier": "^2.7.1",
+    "rimraf": "^3.0.2",
     "typescript": "^4.6.3",
     "vite": "^2.9.9",
     "vite-plugin-pwa": "^0.12.0",
     "vite-tsconfig-paths": "^3.5.0",
+    "workbox-core": "^6.5.3",
+    "workbox-precaching": "^6.5.3",
+    "workbox-routing": "^6.5.3",
     "workbox-window": "^6.5.3"
   }
 }
