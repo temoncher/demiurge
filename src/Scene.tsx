@@ -2,7 +2,7 @@ import { useSpring, a, AnimatedProps, config } from '@react-spring/three';
 import { softShadows, OrthographicCamera, useHelper, RoundedBox } from '@react-three/drei';
 import { Canvas, MeshProps, useThree } from '@react-three/fiber';
 import { useDrag } from '@use-gesture/react';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   DirectionalLightHelper,
   SpotLightHelper,
@@ -19,12 +19,42 @@ import {
   DoubleSide,
   Vector3Tuple,
   Intersection,
+  Vector2Tuple,
 } from 'three';
 
 softShadows();
 
+enum TerrainType {
+  WOODS = 'WOODS',
+  FIELDS = 'FIELDS',
+}
+type Exploration = {
+  type: TerrainType;
+};
+
+const terrainTypeToColorMap = {
+  [TerrainType.FIELDS]: 'yellow',
+  [TerrainType.WOODS]: 'green',
+};
+
+function getRandomEnumMember<T extends string | number, TEnumValue extends string>(enumVariable: { [key in T]: TEnumValue }) {
+  const enumValues = Object.values(enumVariable);
+
+  return enumValues[Math.floor(Math.random() * enumValues.length)] as TEnumValue;
+}
+
 function isTouchDevice() {
   return window.ontouchstart !== undefined;
+}
+
+function applyExploration([rowIndex, columnIndex]: Vector2Tuple, exploration: Exploration) {
+  return (tileRows: (TerrainType | undefined)[][]) => {
+    const updatedTileRows = [...tileRows];
+
+    updatedTileRows[rowIndex]![columnIndex] = exploration.type;
+
+    return updatedTileRows;
+  };
 }
 
 function adjustRayOriginForMobile(ray: Ray) {
@@ -38,7 +68,7 @@ function adjustRayOriginForMobile(ray: Ray) {
   return newRay;
 }
 
-const emptyRows: (string | undefined)[][] = Array.from({ length: 11 }, () => Array.from({ length: 11 }, () => undefined));
+const emptyRows: (TerrainType | undefined)[][] = Array.from({ length: 11 }, () => Array.from({ length: 11 }, () => undefined));
 
 const gridCenter = new Vector3(9, 0, 1);
 
@@ -48,23 +78,15 @@ export default function Scene() {
 
   return (
     <Canvas style={{ touchAction: 'none' }}>
-      <primitive object={new AxesHelper(15)} />
+      {/* <primitive object={new AxesHelper(15)} /> */}
       <Camera />
       <Lights />
       <Grid gridRef={gridRef} rows={tileRows} position={gridCenter.clone().setY(0.2).toArray()} />
       <Ground size={tileRows.length} position={gridCenter.toArray()} />
-      <Exploration
+      <ExplorationHub
         gridRef={gridRef}
-        onGridDrop={(intersectionPoint) => {
-          const sum = new Vector3().addVectors(intersectionPoint.clone().round(), gridCenter);
-
-          console.log(sum);
-
-          const updatedTileRows = [...tileRows];
-
-          updatedTileRows[sum.x]![sum.z] = 'green';
-
-          setTileRows(updatedTileRows);
+        onGridDrop={(insertAt, exploration) => {
+          setTileRows(applyExploration(insertAt, exploration));
         }}
       />
     </Canvas>
@@ -83,7 +105,7 @@ function Camera() {
   return <OrthographicCamera makeDefault zoom={25} />;
 }
 
-function Grid(props: { rows: (string | undefined)[][]; position: Vector3Tuple; gridRef: React.RefObject<Mesh<BufferGeometry, Material>> }) {
+function Grid(props: { rows: (TerrainType | undefined)[][]; position: Vector3Tuple; gridRef: React.RefObject<Mesh<BufferGeometry, Material>> }) {
   const [gridX, gridY, gridZ] = props.position;
   const halfGridSize = Math.floor(props.rows.length / 2);
   const gridCenterPos: Vector3Tuple = [halfGridSize - gridX, gridY, halfGridSize - gridZ];
@@ -94,11 +116,13 @@ function Grid(props: { rows: (string | undefined)[][]; position: Vector3Tuple; g
         <planeBufferGeometry attach="geometry" args={[props.rows.length, props.rows.length]} />
         <meshBasicMaterial attach="material" side={DoubleSide} visible={false} />
       </mesh>
-      <gridHelper args={[props.rows.length, props.rows.length, 'blue', 'blue']} position={[0, 0.1, 0]} />
+      {/* <gridHelper args={[props.rows.length, props.rows.length, 'blue', 'blue']} position={[0, 0.1, 0]} /> */}
 
       {props.rows.map((row, x) =>
-        row.map((tileColor, z) =>
-          tileColor === undefined ? null : <Tile key={`(${x},${z})`} color={tileColor} position={[x - halfGridSize, 0.1, z - halfGridSize]} />
+        row.map((terrainType, z) =>
+          terrainType === undefined ? null : (
+            <Tile key={`(${x},${z})`} color={terrainTypeToColorMap[terrainType]} position={[x - halfGridSize, 0.1, z - halfGridSize]} />
+          )
         )
       )}
     </group>
@@ -126,22 +150,20 @@ const MOBILE_TOUCH_OFFSET = 2;
 
 const horizontalPlane = new Plane(new Vector3(0, 1, 0));
 
-function Exploration(props: { gridRef: React.RefObject<Mesh<BufferGeometry, Material>>; onGridDrop: (intersectionPoint: Vector3) => void }) {
-  // const { raycaster, camera, mouse, scene } = useThree();
+type ExplorationHubProps = {
+  gridRef: React.RefObject<Mesh<BufferGeometry, Material>>;
+  onGridDrop: (insertAt: Vector2Tuple, exploration: Exploration) => void;
+};
+
+function ExplorationHub(props: ExplorationHubProps) {
+  const [currentExploration, setCurrentExploration] = useState<Exploration>(() => ({ type: TerrainType.WOODS }));
   const [springPos, api] = useSpring(() => ({ position: defaultExplorationTilePosition.toArray(), visible: true }));
   const bind = useDrag(({ down, event }) => {
-    // raycaster.setFromCamera(isTouchDevice() ? mouse.clone().addScalar(MOBILE_TOUCH_OFFSET) : mouse, camera);
-    // const intersects = raycaster.intersectObject(props.gridRef.current!);
-    // console.log(event);
-
     const adjustedRay = adjustRayOriginForMobile((event as unknown as { intersections: Intersection[] }).ray);
 
-    const normal = new Vector3().set(0, 0, 1).applyQuaternion(props.gridRef.current!.quaternion);
-    const gridPlane = new Plane().setFromNormalAndCoplanarPoint(normal, new Vector3().copy(props.gridRef.current!.position));
-
-    const gridIntersection = adjustedRay.intersectPlane(gridPlane, new Vector3());
-
-    // console.log(adjustedRay);
+    const box = new Box3().setFromObject(props.gridRef.current!);
+    // We can't use `intersectPlane`, because planes are infinite
+    const gridIntersection = adjustedRay.intersectBox(box, new Vector3());
 
     if (down) {
       if (gridIntersection) {
@@ -159,17 +181,27 @@ function Exploration(props: { gridRef: React.RefObject<Mesh<BufferGeometry, Mate
     } else {
       if (gridIntersection) {
         api.start({ visible: false });
-        props.onGridDrop(gridIntersection);
+
+        const sum = new Vector3().addVectors(gridIntersection.clone().round(), gridCenter);
+
+        props.onGridDrop([sum.x, sum.z], currentExploration);
+        setCurrentExploration({
+          type: getRandomEnumMember(TerrainType),
+        });
       } else {
         api.start({ position: defaultExplorationTilePosition.toArray() });
       }
     }
   });
 
+  useEffect(() => {
+    api.start({ immediate: true, visible: true, position: defaultExplorationTilePosition.toArray() });
+  }, [currentExploration]);
+
   return (
     <>
       {/* @ts-expect-error bind type mismatch */}
-      <Tile {...springPos} {...bind()} color="green" />
+      <Tile {...springPos} {...bind()} color={terrainTypeToColorMap[currentExploration.type]} />
     </>
   );
 }
