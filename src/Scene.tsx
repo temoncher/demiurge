@@ -1,8 +1,8 @@
-import { useSpring, a, AnimatedProps } from '@react-spring/three';
+import { useSpring, a, AnimatedProps, config } from '@react-spring/three';
 import { softShadows, OrthographicCamera, useHelper, RoundedBox } from '@react-three/drei';
 import { Canvas, MeshProps, useThree } from '@react-three/fiber';
 import { useDrag } from '@use-gesture/react';
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   DirectionalLightHelper,
   SpotLightHelper,
@@ -10,13 +10,15 @@ import {
   Vector3,
   Plane,
   Ray,
-  BufferGeometry,
   Mesh,
   Material,
-  BoxHelper,
   SpotLight,
   DirectionalLight,
   Box3,
+  BufferGeometry,
+  DoubleSide,
+  Vector3Tuple,
+  Intersection,
 } from 'three';
 
 softShadows();
@@ -25,18 +27,46 @@ function isTouchDevice() {
   return window.ontouchstart !== undefined;
 }
 
-const tileRows = Array.from({ length: 11 }, () => Array.from({ length: 11 }));
+function adjustRayOriginForMobile(ray: Ray) {
+  const newRay = ray.clone();
+
+  if (isTouchDevice()) {
+    newRay.origin.x = newRay.origin.x - MOBILE_TOUCH_OFFSET * 2;
+    newRay.origin.x = newRay.origin.x + MOBILE_TOUCH_OFFSET;
+  }
+
+  return newRay;
+}
+
+const emptyRows: (string | undefined)[][] = Array.from({ length: 11 }, () => Array.from({ length: 11 }, () => undefined));
+
+const gridCenter = new Vector3(9, 0, 1);
 
 export default function Scene() {
-  const groundRef = useRef<Mesh<BufferGeometry, Material>>(null);
+  const [tileRows, setTileRows] = useState(() => emptyRows);
+  const gridRef = useRef<Mesh<BufferGeometry, Material>>(null);
 
   return (
     <Canvas style={{ touchAction: 'none' }}>
       <primitive object={new AxesHelper(15)} />
       <Camera />
-      <Grid rows={tileRows} offsetTop={5} offsetLeft={4} />
-      <Ground ref={groundRef} size={11} offsetTop={5} offsetLeft={4} />
-      <Exploration groundRef={groundRef} />
+      <Lights />
+      <Grid gridRef={gridRef} rows={tileRows} position={gridCenter.clone().setY(0.2).toArray()} />
+      <Ground size={tileRows.length} position={gridCenter.toArray()} />
+      <Exploration
+        gridRef={gridRef}
+        onGridDrop={(intersectionPoint) => {
+          const sum = new Vector3().addVectors(intersectionPoint.clone().round(), gridCenter);
+
+          console.log(sum);
+
+          const updatedTileRows = [...tileRows];
+
+          updatedTileRows[sum.x]![sum.z] = 'green';
+
+          setTileRows(updatedTileRows);
+        }}
+      />
     </Canvas>
   );
 }
@@ -50,22 +80,33 @@ function Camera() {
     camera.updateProjectionMatrix();
   });
 
-  return <OrthographicCamera makeDefault zoom={30} />;
+  return <OrthographicCamera makeDefault zoom={25} />;
 }
 
-function Grid(props: { rows: unknown[][]; offsetTop: number; offsetLeft: number }) {
+function Grid(props: { rows: (string | undefined)[][]; position: Vector3Tuple; gridRef: React.RefObject<Mesh<BufferGeometry, Material>> }) {
+  const [gridX, gridY, gridZ] = props.position;
+  const halfGridSize = Math.floor(props.rows.length / 2);
+  const gridCenterPos: Vector3Tuple = [halfGridSize - gridX, gridY, halfGridSize - gridZ];
+
   return (
-    <>
-      <Lights />
+    <group position={gridCenterPos}>
+      <mesh ref={props.gridRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.1, 0]}>
+        <planeBufferGeometry attach="geometry" args={[props.rows.length, props.rows.length]} />
+        <meshBasicMaterial attach="material" side={DoubleSide} visible={false} />
+      </mesh>
+      <gridHelper args={[props.rows.length, props.rows.length, 'blue', 'blue']} position={[0, 0.1, 0]} />
+
       {props.rows.map((row, x) =>
-        row.map((und, z) => <Tile key={`(${x},${z})`} x={x} z={z} offsetTop={props.offsetTop} offsetLeft={props.offsetLeft} />)
+        row.map((tileColor, z) =>
+          tileColor === undefined ? null : <Tile key={`(${x},${z})`} color={tileColor} position={[x - halfGridSize, 0.1, z - halfGridSize]} />
+        )
       )}
-    </>
+    </group>
   );
 }
 
 function Lights() {
-  const spotLightRef = useRef<SpotLight>(null);
+  // const spotLightRef = useRef<SpotLight>(null);
   const directionalLightRef = useRef<DirectionalLight>(null);
 
   // useHelper(spotLightRef, SpotLightHelper, 'hotpink');
@@ -80,82 +121,78 @@ function Lights() {
   );
 }
 
-const defaultExplorationTilePosition = [10, 0.6, -5];
+const defaultExplorationTilePosition = new Vector3(10, 0.4, -5);
 const MOBILE_TOUCH_OFFSET = 2;
 
-function getNewCoords(groundMesh: Mesh<BufferGeometry, Material>, ray: Ray) {
-  const groundBox = new Box3().setFromObject(groundMesh);
+const horizontalPlane = new Plane(new Vector3(0, 1, 0));
 
-  if (isTouchDevice()) {
-    ray.origin.x = ray.origin.x - MOBILE_TOUCH_OFFSET * 2;
-    ray.origin.x = ray.origin.x + MOBILE_TOUCH_OFFSET;
-  }
+function Exploration(props: { gridRef: React.RefObject<Mesh<BufferGeometry, Material>>; onGridDrop: (intersectionPoint: Vector3) => void }) {
+  // const { raycaster, camera, mouse, scene } = useThree();
+  const [springPos, api] = useSpring(() => ({ position: defaultExplorationTilePosition.toArray(), visible: true }));
+  const bind = useDrag(({ down, event }) => {
+    // raycaster.setFromCamera(isTouchDevice() ? mouse.clone().addScalar(MOBILE_TOUCH_OFFSET) : mouse, camera);
+    // const intersects = raycaster.intersectObject(props.gridRef.current!);
+    // console.log(event);
 
-  if (ray.intersectsBox(groundBox)) {
-    const groundIntersectionVector = new Vector3();
+    const adjustedRay = adjustRayOriginForMobile((event as unknown as { intersections: Intersection[] }).ray);
 
-    ray.intersectBox(groundBox, groundIntersectionVector);
+    const normal = new Vector3().set(0, 0, 1).applyQuaternion(props.gridRef.current!.quaternion);
+    const gridPlane = new Plane().setFromNormalAndCoplanarPoint(normal, new Vector3().copy(props.gridRef.current!.position));
 
-    return {
-      x: Math.round(groundIntersectionVector.x),
-      z: Math.round(groundIntersectionVector.z),
-    };
-  }
+    const gridIntersection = adjustedRay.intersectPlane(gridPlane, new Vector3());
 
-  const planeIntesectionVector = new Vector3();
+    // console.log(adjustedRay);
 
-  ray.intersectPlane(new Plane(new Vector3(0, 1, 0)), planeIntesectionVector);
+    if (down) {
+      if (gridIntersection) {
+        api.start({
+          position: gridIntersection.clone().round().setY(defaultExplorationTilePosition.y).toArray(),
+          config: config.stiff,
+        });
+      } else {
+        const horizontalPlaneIntesection = adjustedRay.intersectPlane(horizontalPlane, new Vector3())!;
 
-  return {
-    x: planeIntesectionVector.x,
-    z: planeIntesectionVector.z,
-  };
-}
-
-function Exploration({ groundRef }: { groundRef: React.MutableRefObject<Mesh<BufferGeometry, Material> | null> }) {
-  const [springPos, api] = useSpring(() => ({ position: defaultExplorationTilePosition }));
-
-  const bind = useDrag<{ ray: Ray }>(({ down, event }) => {
-    const { x, z } = getNewCoords(groundRef.current!, event.ray);
-
-    api.start({ position: down ? [x, 0.6, z] : defaultExplorationTilePosition });
+        api.start({
+          position: horizontalPlaneIntesection.clone().setY(defaultExplorationTilePosition.y).toArray(),
+        });
+      }
+    } else {
+      if (gridIntersection) {
+        api.start({ visible: false });
+        props.onGridDrop(gridIntersection);
+      } else {
+        api.start({ position: defaultExplorationTilePosition.toArray() });
+      }
+    }
   });
 
   return (
     <>
       {/* @ts-expect-error bind type mismatch */}
-      <a.mesh {...springPos} {...bind()}>
-        <boxBufferGeometry attach="geometry" args={[0.8, 0.1, 0.8]} />
-        <meshLambertMaterial attach="material" color="green" />
-      </a.mesh>
+      <Tile {...springPos} {...bind()} color="green" />
     </>
   );
 }
 
-function Tile(props: { x: number; z: number; offsetTop: number; offsetLeft: number } & Omit<AnimatedProps<MeshProps>, 'position'>) {
-  const posX = props.x - props.offsetTop - props.offsetLeft;
-  const posY = 0.5;
-  const posZ = props.z - props.offsetTop + props.offsetLeft;
-
+function Tile({ color, ...props }: { color: string } & AnimatedProps<MeshProps>) {
   return (
-    <a.mesh position={[posX, posY, posZ]}>
+    <a.mesh {...props}>
       <boxBufferGeometry attach="geometry" args={[0.8, 0.1, 0.8]} />
-      <meshLambertMaterial attach="material" color="hotpink" />
+      <meshLambertMaterial attach="material" color={color} />
     </a.mesh>
   );
 }
 
 const Ground = React.forwardRef(
-  (props: { size: number; offsetTop: number; offsetLeft: number }, ref: React.Ref<Mesh<BufferGeometry, Material | Material[]>>) => {
+  (props: { size: number; position: [number, number, number] }, ref: React.Ref<Mesh<BufferGeometry, Material | Material[]>>) => {
     // @ts-expect-error ref types mismatch
-    useHelper(ref, BoxHelper, 'red');
+    // useHelper(ref, BoxHelper, 'red');
 
-    const posX = Math.floor(props.size / 2) - props.offsetTop - props.offsetLeft;
-    const posY = 0;
-    const posZ = Math.floor(props.size / 2) - props.offsetTop + props.offsetLeft;
+    const [gridX, gridY, gridZ] = props.position;
+    const gridCenterPos: [number, number, number] = [Math.floor(props.size / 2) - gridX, gridY, Math.floor(props.size / 2) - gridZ];
 
     return (
-      <RoundedBox ref={ref} args={[props.size, 0.5, props.size]} radius={0.1} position={[posX, posY, posZ]}>
+      <RoundedBox ref={ref} args={[props.size, 0.5, props.size]} radius={0.1} position={gridCenterPos}>
         <meshLambertMaterial color="grey" />
       </RoundedBox>
     );
