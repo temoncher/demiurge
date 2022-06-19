@@ -187,12 +187,6 @@ module.exports = {
     '@typescript-eslint/no-dynamic-delete': 1,
     '@typescript-eslint/no-empty-interface': 0,
     '@typescript-eslint/no-invalid-void-type': 2,
-    '@typescript-eslint/no-parameter-properties': [
-      2,
-      {
-        allows: ['private readonly'],
-      },
-    ],
     '@typescript-eslint/no-unnecessary-condition': 1,
     '@typescript-eslint/no-unnecessary-qualifier': 1,
     '@typescript-eslint/no-unnecessary-type-constraint': 1,
