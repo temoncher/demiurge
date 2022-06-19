@@ -4,3 +4,5 @@ dist
 dist-ssr
 dev-dist
 *.local
+
+yarn-error.log
