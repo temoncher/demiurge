@@ -21,13 +21,17 @@ import {
 
 softShadows();
 
+function isTouchDevice() {
+  return window.ontouchstart !== undefined;
+}
+
 const tileRows = Array.from({ length: 11 }, () => Array.from({ length: 11 }));
 
 export default function Scene() {
   const groundRef = useRef<Mesh<BufferGeometry, Material>>(null);
 
   return (
-    <Canvas>
+    <Canvas style={{ touchAction: 'none' }}>
       <primitive object={new AxesHelper(15)} />
       <Camera />
       <Grid rows={tileRows} offsetTop={5} offsetLeft={4} />
@@ -77,27 +81,35 @@ function Lights() {
 }
 
 const defaultExplorationTilePosition = [10, 0.6, -5];
+const MOBILE_TOUCH_OFFSET = 2;
 
 function getNewCoords(groundMesh: Mesh<BufferGeometry, Material>, ray: Ray) {
   const groundBox = new Box3().setFromObject(groundMesh);
+
+  if (isTouchDevice()) {
+    ray.origin.x = ray.origin.x - MOBILE_TOUCH_OFFSET * 2;
+    ray.origin.x = ray.origin.x + MOBILE_TOUCH_OFFSET;
+  }
 
   if (ray.intersectsBox(groundBox)) {
     const groundIntersectionVector = new Vector3();
 
     ray.intersectBox(groundBox, groundIntersectionVector);
 
-    const [x, y, z] = groundIntersectionVector.toArray();
-
-    return { x: Math.round(x), z: Math.round(z) };
+    return {
+      x: Math.round(groundIntersectionVector.x),
+      z: Math.round(groundIntersectionVector.z),
+    };
   }
 
   const planeIntesectionVector = new Vector3();
 
   ray.intersectPlane(new Plane(new Vector3(0, 1, 0)), planeIntesectionVector);
 
-  const [x, y, z] = planeIntesectionVector.toArray();
-
-  return { x, z };
+  return {
+    x: planeIntesectionVector.x,
+    z: planeIntesectionVector.z,
+  };
 }
 
 function Exploration({ groundRef }: { groundRef: React.MutableRefObject<Mesh<BufferGeometry, Material> | null> }) {
@@ -106,7 +118,7 @@ function Exploration({ groundRef }: { groundRef: React.MutableRefObject<Mesh<Buf
   const bind = useDrag<{ ray: Ray }>(({ down, event }) => {
     const { x, z } = getNewCoords(groundRef.current!, event.ray);
 
-    api.start({ immediate: down, position: down ? [x, 0.6, z] : defaultExplorationTilePosition });
+    api.start({ position: down ? [x, 0.6, z] : defaultExplorationTilePosition });
   });
 
   return (
