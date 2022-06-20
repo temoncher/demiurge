@@ -40,5 +40,7 @@ export default function useOrientation(initialState = defaultState) {
     };
   }, [0]);
 
-  return { ...state, isLandscape: state.type.startsWith('landscape') };
+  const isLandscape = state.type === 'landscape-primary' || state.type === 'landscape-secondary';
+
+  return { ...state, isLandscape };
 }
