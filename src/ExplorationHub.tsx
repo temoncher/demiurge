@@ -1,8 +1,7 @@
 import { useSpring, config, a } from '@react-spring/three';
-import { useHelper } from '@react-three/drei';
 import { useDrag } from '@use-gesture/react';
 import { useContext, useState, useEffect, useRef, useMemo } from 'react';
-import { Plane, Vector3, Vector3Tuple, Vector2Tuple, Ray, Box3, DoubleSide, Group, BoxHelper } from 'three';
+import { Plane, Vector3, Vector3Tuple, Vector2Tuple, Ray, Box3, DoubleSide, Group } from 'three';
 
 import { MainGridContext } from './MainGridContext';
 import Tile from './Tile';
@@ -130,8 +129,6 @@ export default function ExplorationHub(props: ExplorationHubProps) {
   useEffect(() => {
     explorationSpringApi.start({ rotation: currentRotationEulerTuple });
   }, [rotations]);
-
-  // useHelper(explorationGridRef, BoxHelper, 'blue');
 
   const halfMaskRowSize = Math.floor(currentExploration.mask.length / 2) - (isEven(currentExploration.mask.length) && !isDragged ? 0.5 : 0);
   const halfMaskColSize = Math.floor(currentExploration.mask[0]!.length / 2) - (isEven(currentExploration.mask[0]!.length) && !isDragged ? 0.5 : 0);
