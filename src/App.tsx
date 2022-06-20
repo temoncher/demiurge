@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 
+import { MainGridContextProvider } from './MainGridContext';
 import ReloadPrompt from './ReloadPrompt';
 import Scene from './Scene';
 
@@ -11,7 +12,9 @@ export default function App() {
 
   return (
     <>
-      <Scene />
+      <MainGridContextProvider>
+        <Scene />
+      </MainGridContextProvider>
       <ReloadPrompt />
     </>
   );

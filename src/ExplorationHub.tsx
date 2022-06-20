@@ -1,8 +1,9 @@
 import { useSpring, config, a } from '@react-spring/three';
 import { useDrag } from '@use-gesture/react';
-import { useState, useEffect } from 'react';
-import { Plane, Vector3, Vector3Tuple, Mesh, BufferGeometry, Material, Vector2Tuple, Ray, Box3, DoubleSide } from 'three';
+import { useContext, useState, useEffect } from 'react';
+import { Plane, Vector3, Vector3Tuple, Vector2Tuple, Ray, Box3, DoubleSide } from 'three';
 
+import { MainGridContext } from './MainGridContext';
 import Tile from './Tile';
 import { applyExploration } from './domain';
 import { explorations } from './explorations';
@@ -28,11 +29,11 @@ type ExplorationHubProps = {
   position: Vector3Tuple;
   gridCenter: Vector3;
   tiles: (TerrainType | undefined)[][];
-  gridRef: React.RefObject<Mesh<BufferGeometry, Material>>;
   onGridDrop: (at: Vector2Tuple, exploration: Exploration) => void;
 };
 
 export default function ExplorationHub(props: ExplorationHubProps) {
+  const { mainGridRef } = useContext(MainGridContext);
   const [wireframe, setWireframe] = useState(false);
   const [error, setError] = useState<WrongPositioningError | null>(null);
   const [currentExploration, setCurrentExploration] = useState<Exploration>(() => getRandomElement(explorations));
@@ -40,7 +41,7 @@ export default function ExplorationHub(props: ExplorationHubProps) {
   const bind = useDrag<{ ray: Ray }>(({ down, event }) => {
     const adjustedRay = adjustRayOriginForMobile(event.ray);
 
-    const box = new Box3().setFromObject(props.gridRef.current!);
+    const box = new Box3().setFromObject(mainGridRef);
     // We can't use `intersectPlane`, because planes are infinite
     const gridIntersection = adjustedRay.intersectBox(box, new Vector3());
 
@@ -96,7 +97,7 @@ export default function ExplorationHub(props: ExplorationHubProps) {
 
   return (
     <a.group {...springPos} {...bind()}>
-      <mesh ref={props.gridRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.1, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.1, 0]}>
         <planeBufferGeometry attach="geometry" args={[currentExploration.mask.length, currentExploration.mask.length]} />
         <meshBasicMaterial attach="material" side={DoubleSide} visible={false} />
       </mesh>

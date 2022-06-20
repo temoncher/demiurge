@@ -1,9 +1,10 @@
-import { softShadows, OrthographicCamera, RoundedBox } from '@react-three/drei';
+import { softShadows, OrthographicCamera, RoundedBox, useContextBridge } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Vector3, Mesh, Material, DirectionalLight, BufferGeometry, DoubleSide, Vector3Tuple, Vector2Tuple, AxesHelper } from 'three';
 
 import ExplorationHub from './ExplorationHub';
+import { MainGridContext } from './MainGridContext';
 import Tile from './Tile';
 import { applyExploration } from './domain';
 import { Exploration, TerrainType, terrainTypeToColorMap } from './types';
@@ -26,6 +27,7 @@ type LogEntry = {
 };
 
 export default function Scene() {
+  const ContextBridge = useContextBridge(MainGridContext);
   const [gridIsVisible, setGridVisibility] = useState(false);
   const [log, setLog] = useState<LogEntry[]>([]);
   const gameContext = useMemo(
@@ -39,7 +41,6 @@ export default function Scene() {
       ),
     [log]
   );
-  const gridRef = useRef<Mesh<BufferGeometry, Material>>(null);
   const { isLandscape } = useOrientation();
   const gridCenter = isLandscape ? new Vector3(9, 0, 1) : new Vector3(18, 0, 18);
   const explorationHubCenter = isLandscape ? new Vector3(10, 0.4, -5) : new Vector3(15, 0.4, 15);
@@ -82,20 +83,21 @@ export default function Scene() {
         </div>
       )}
       <Canvas style={{ touchAction: 'none' }}>
-        {/* <primitive object={new AxesHelper(15)} /> */}
-        <Camera />
-        <Lights />
-        <Grid gridIsEnabled={gridIsVisible} gridRef={gridRef} rows={gameContext.tiles} position={gridCenter.toArray()} />
-        <Ground size={gameContext.tiles.length} position={gridCenter.toArray()} />
-        <ExplorationHub
-          position={explorationHubCenter.toArray()}
-          gridCenter={gridCenter}
-          tiles={gameContext.tiles}
-          gridRef={gridRef}
-          onGridDrop={(at, exploration) => {
-            setLog([...log, { at, exploration }]);
-          }}
-        />
+        <ContextBridge>
+          {/* <primitive object={new AxesHelper(15)} /> */}
+          <Camera />
+          <Lights />
+          <Grid gridIsEnabled={gridIsVisible} rows={gameContext.tiles} position={gridCenter.toArray()} />
+          <Ground size={gameContext.tiles.length} position={gridCenter.toArray()} />
+          <ExplorationHub
+            position={explorationHubCenter.toArray()}
+            gridCenter={gridCenter}
+            tiles={gameContext.tiles}
+            onGridDrop={(at, exploration) => {
+              setLog([...log, { at, exploration }]);
+            }}
+          />
+        </ContextBridge>
       </Canvas>
     </>
   );
@@ -126,18 +128,23 @@ type GridProps = {
   gridIsEnabled: boolean;
   rows: (TerrainType | undefined)[][];
   position: Vector3Tuple;
-  gridRef: React.RefObject<Mesh<BufferGeometry, Material>>;
 };
 
 function Grid(props: GridProps) {
+  const gridRef = useRef<Mesh<BufferGeometry, Material>>(null);
+  const { setRef } = useContext(MainGridContext);
   const [gridX, gridY, gridZ] = props.position;
   const halfGridSize = Math.floor(props.rows.length / 2);
+
+  useEffect(() => {
+    setRef(gridRef.current!);
+  }, [gridRef.current]);
 
   const gridCenterPos: Vector3Tuple = [halfGridSize - gridX, gridY + 0.2, halfGridSize - gridZ];
 
   return (
     <group position={gridCenterPos}>
-      <mesh ref={props.gridRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.1, 0]}>
+      <mesh ref={gridRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.1, 0]}>
         <planeBufferGeometry attach="geometry" args={[props.rows.length, props.rows.length]} />
         <meshBasicMaterial attach="material" side={DoubleSide} visible={false} />
       </mesh>

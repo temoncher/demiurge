@@ -7,10 +7,10 @@ export const explorations: Exploration[] = [
     name: 'Land',
     type: TerrainType.FIELDS,
     mask: [
+      [0, 0, 0, 0],
       [0, 1, 0, 0],
       [1, 1, 1, 0],
       [0, 1, 0, 0],
-      [0, 0, 0, 0],
     ],
   },
   {
@@ -18,10 +18,10 @@ export const explorations: Exploration[] = [
     name: 'Forgotten forest',
     type: TerrainType.FOREST,
     mask: [
+      [0, 0, 0, 0],
       [0, 1, 0, 0],
       [0, 1, 1, 0],
       [0, 0, 1, 0],
-      [0, 0, 0, 0],
     ],
   },
   {
@@ -29,10 +29,10 @@ export const explorations: Exploration[] = [
     name: 'Farm',
     type: TerrainType.FIELDS,
     mask: [
+      [0, 0, 0, 0],
       [0, 1, 0, 0],
       [0, 1, 1, 0],
       [0, 1, 0, 0],
-      [0, 0, 0, 0],
     ],
   },
   {
@@ -40,9 +40,9 @@ export const explorations: Exploration[] = [
     name: 'Town',
     type: TerrainType.SETTLEMENT,
     mask: [
-      [1, 1, 1, 0],
-      [1, 1, 0, 0],
       [0, 0, 0, 0],
+      [0, 1, 1, 1],
+      [0, 1, 1, 0],
       [0, 0, 0, 0],
     ],
   },
@@ -51,9 +51,9 @@ export const explorations: Exploration[] = [
     name: 'Finshing village',
     type: TerrainType.SETTLEMENT,
     mask: [
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
       [1, 1, 1, 1],
-      [0, 0, 0, 0],
-      [0, 0, 0, 0],
       [0, 0, 0, 0],
     ],
   },
@@ -62,10 +62,10 @@ export const explorations: Exploration[] = [
     name: 'River in the fields',
     type: TerrainType.WATER,
     mask: [
-      [1, 1, 1, 0],
-      [1, 0, 0, 0],
-      [1, 0, 0, 0],
       [0, 0, 0, 0],
+      [0, 1, 1, 1],
+      [0, 1, 0, 0],
+      [0, 1, 0, 0],
     ],
   },
   {
@@ -73,10 +73,10 @@ export const explorations: Exploration[] = [
     name: 'Swamp',
     type: TerrainType.WATER,
     mask: [
-      [1, 0, 0, 0],
-      [1, 1, 1, 0],
-      [1, 0, 0, 0],
       [0, 0, 0, 0],
+      [0, 1, 0, 0],
+      [0, 1, 1, 1],
+      [0, 1, 0, 0],
     ],
   },
 ];
