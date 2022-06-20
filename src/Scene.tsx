@@ -15,11 +15,11 @@ softShadows();
 const TIME_LIMIT = 6 + 7 + 8 + 8;
 
 type GameContext = {
-  tiles: (TerrainType | undefined)[][];
+  tiles: (TerrainType | null)[][];
   timeLeft: number;
 };
 
-const emptyRows: (TerrainType | undefined)[][] = Array.from({ length: 11 }, () => Array.from({ length: 11 }, () => undefined));
+const emptyRows: (TerrainType | null)[][] = Array.from({ length: 11 }, () => Array.from({ length: 11 }, () => null));
 
 type LogEntry = {
   exploration: Exploration;
@@ -34,9 +34,9 @@ export default function Scene() {
     () =>
       log.reduce<GameContext>(
         (ctx, entry) => ({
-          timeLeft: ctx.timeLeft - entry.exploration.time - 12,
+          timeLeft: ctx.timeLeft - entry.exploration.time,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          tiles: applyExploration(entry.at, entry.exploration, ctx.tiles) as any,
+          tiles: applyExploration(entry.at, entry.exploration.mask, entry.exploration.type, ctx.tiles) as any,
         }),
         { tiles: emptyRows, timeLeft: TIME_LIMIT }
       ),
@@ -94,6 +94,7 @@ export default function Scene() {
             gridCenter={gridCenter}
             tiles={gameContext.tiles}
             onGridDrop={(at, exploration) => {
+              console.log(at);
               setLog([...log, { at, exploration }]);
             }}
           />
@@ -126,7 +127,7 @@ function Camera() {
 
 type MainGridProps = {
   gridIsEnabled: boolean;
-  rows: (TerrainType | undefined)[][];
+  rows: (TerrainType | null)[][];
   position: Vector3Tuple;
 };
 
@@ -156,9 +157,10 @@ function MainGrid(props: MainGridProps) {
 
       {props.rows.map((row, x) =>
         row.map((terrainType, z) =>
-          terrainType === undefined ? null : (
+          terrainType === null ? null : (
             <Tile
               key={`(${x},${z})`}
+              spacing={0.2}
               wireframe={false}
               color={terrainTypeToColorMap[terrainType]}
               position={[x - halfGridSize, 0.3, z - halfGridSize]}

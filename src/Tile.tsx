@@ -1,9 +1,9 @@
 import { MeshProps } from '@react-three/fiber';
 
-export default function Tile({ color, wireframe, ...props }: { color: string; wireframe: boolean } & MeshProps) {
+export default function Tile({ spacing, color, wireframe, ...props }: { spacing: number; color: string; wireframe: boolean } & MeshProps) {
   return (
     <mesh {...props}>
-      <boxBufferGeometry attach="geometry" args={[0.8, 0.1, 0.8]} />
+      <boxBufferGeometry attach="geometry" args={[1 - spacing, 0.1, 1 - spacing]} />
       <meshLambertMaterial wireframe={wireframe} attach="material" color={color} />
     </mesh>
   );
