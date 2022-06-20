@@ -1,7 +1,9 @@
 import { Exploration, TerrainType } from './types';
 
+// eslint-disable-next-line import/prefer-default-export
 export const explorations: Exploration[] = [
   {
+    time: 1,
     name: 'Land',
     type: TerrainType.FIELDS,
     mask: [
@@ -12,6 +14,7 @@ export const explorations: Exploration[] = [
     ],
   },
   {
+    time: 1,
     name: 'Forgotten forest',
     type: TerrainType.FOREST,
     mask: [
@@ -22,6 +25,7 @@ export const explorations: Exploration[] = [
     ],
   },
   {
+    time: 2,
     name: 'Farm',
     type: TerrainType.FIELDS,
     mask: [
@@ -32,6 +36,7 @@ export const explorations: Exploration[] = [
     ],
   },
   {
+    time: 1,
     name: 'Town',
     type: TerrainType.SETTLEMENT,
     mask: [
@@ -42,6 +47,7 @@ export const explorations: Exploration[] = [
     ],
   },
   {
+    time: 2,
     name: 'Finshing village',
     type: TerrainType.SETTLEMENT,
     mask: [
@@ -52,6 +58,7 @@ export const explorations: Exploration[] = [
     ],
   },
   {
+    time: 2,
     name: 'River in the fields',
     type: TerrainType.WATER,
     mask: [
@@ -62,6 +69,7 @@ export const explorations: Exploration[] = [
     ],
   },
   {
+    time: 2,
     name: 'Swamp',
     type: TerrainType.WATER,
     mask: [

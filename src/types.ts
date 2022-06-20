@@ -6,6 +6,7 @@ export enum TerrainType {
 }
 
 export type Exploration = {
+  time: number;
   name: string;
   type: TerrainType;
   mask: (0 | 1)[][];
