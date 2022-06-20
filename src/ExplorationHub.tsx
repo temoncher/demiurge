@@ -1,7 +1,7 @@
 import { useSpring, config, a } from '@react-spring/three';
 import { useDrag } from '@use-gesture/react';
-import { useContext, useState, useEffect } from 'react';
-import { Plane, Vector3, Vector3Tuple, Vector2Tuple, Ray, Box3, DoubleSide } from 'three';
+import { useContext, useState, useEffect, useRef } from 'react';
+import { Plane, Vector3, Vector3Tuple, Vector2Tuple, Ray, Box3, DoubleSide, Group } from 'three';
 
 import { MainGridContext } from './MainGridContext';
 import Tile from './Tile';
@@ -34,11 +34,15 @@ type ExplorationHubProps = {
 
 export default function ExplorationHub(props: ExplorationHubProps) {
   const { mainGridRef } = useContext(MainGridContext);
+  const explorationGridRef = useRef<Group>(null);
   const [wireframe, setWireframe] = useState(false);
+  const [explorationsLeft, setExplorationsLeft] = useState(() => explorations);
   const [error, setError] = useState<WrongPositioningError | null>(null);
-  const [currentExploration, setCurrentExploration] = useState<Exploration>(() => getRandomElement(explorations));
-  const [springPos, api] = useSpring(() => ({ position: props.position }));
+  const [currentExploration, setCurrentExploration] = useState<Exploration>(() => getRandomElement(explorationsLeft));
+
+  const [springPos, api] = useSpring(() => ({ position: [0, 0, 0] }));
   const bind = useDrag<{ ray: Ray }>(({ down, event }) => {
+    const groupOffsetVector = explorationGridRef.current!.parent!.getWorldPosition(new Vector3());
     const adjustedRay = adjustRayOriginForMobile(event.ray);
 
     const box = new Box3().setFromObject(mainGridRef);
@@ -54,7 +58,7 @@ export default function ExplorationHub(props: ExplorationHubProps) {
 
         setError(updatedTiles instanceof WrongPositioningError ? updatedTiles : null);
         api.start({
-          position: gridIntersection.clone().round().setY(props.position[1]).toArray(),
+          position: new Vector3().addVectors(gridIntersection, groupOffsetVector.negate()).round().setY(0).toArray(),
           config: config.stiff,
         });
       } else {
@@ -62,7 +66,7 @@ export default function ExplorationHub(props: ExplorationHubProps) {
 
         setError(null);
         api.start({
-          position: horizontalPlaneIntesection.clone().setY(props.position[1]).toArray(),
+          position: new Vector3().addVectors(horizontalPlaneIntesection, groupOffsetVector.negate()).setY(0).toArray(),
         });
       }
     } else {
@@ -74,49 +78,56 @@ export default function ExplorationHub(props: ExplorationHubProps) {
         const updatedTiles = applyExploration([sum.x, sum.z], currentExploration, props.tiles);
 
         if (updatedTiles instanceof WrongPositioningError) {
-          api.start({ position: props.position });
+          api.start({ position: [0, 0, 0] });
         } else {
           props.onGridDrop([sum.x, sum.z], currentExploration);
-          setCurrentExploration({ ...getRandomElement(explorations) });
+          setExplorationsLeft(explorationsLeft.filter((ex) => ex.name !== currentExploration.name));
         }
       } else {
-        api.start({ position: props.position });
+        api.start({ position: [0, 0, 0] });
       }
     }
   });
 
   useEffect(() => {
-    api.start({ immediate: true, position: props.position });
+    api.start({ immediate: true, position: [0, 0, 0] });
   }, [props.position]);
 
   useEffect(() => {
-    api.start({ immediate: true, position: props.position });
+    api.start({ immediate: true, position: [0, 0, 0] });
   }, [currentExploration]);
+
+  useEffect(() => {
+    setCurrentExploration({ ...getRandomElement(explorationsLeft) });
+  }, [explorationsLeft]);
 
   const halfGridSize = Math.floor(currentExploration.mask.length / 2);
 
   return (
-    <a.group {...springPos} {...bind()}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.1, 0]}>
-        <planeBufferGeometry attach="geometry" args={[currentExploration.mask.length, currentExploration.mask.length]} />
-        <meshBasicMaterial attach="material" side={DoubleSide} visible={false} />
-      </mesh>
-      {currentExploration.mask.map((row, x) =>
-        row.map((hasTile, z) => {
-          if (hasTile === 0) return null;
+    <group position={props.position}>
+      {/* @ts-expect-error bind type mismatch */}
+      <a.group ref={explorationGridRef} {...springPos} {...bind()}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.1, 0]}>
+          <planeBufferGeometry attach="geometry" args={[currentExploration.mask.length, currentExploration.mask.length]} />
+          <meshBasicMaterial attach="material" side={DoubleSide} visible={false} />
+        </mesh>
+        {currentExploration.mask.map((row, x) =>
+          row.map((hasTile, z) => {
+            if (hasTile === 0) return null;
 
-          const hasError = error?.coords.some(([errX, errZ]) => errX === x && errZ === z);
+            const hasError = error?.coords.some(([errX, errZ]) => errX === x && errZ === z);
 
-          return (
-            <Tile
-              key={`(${x},${z})`}
-              wireframe={wireframe}
-              color={hasError ? 'red' : terrainTypeToColorMap[currentExploration.type]}
-              position={[x - halfGridSize, 0.1, z - halfGridSize]}
-            />
-          );
-        })
-      )}
-    </a.group>
+            return (
+              <Tile
+                key={`(${x},${z})`}
+                wireframe={wireframe}
+                color={hasError ? 'red' : terrainTypeToColorMap[currentExploration.type]}
+                position={[x - halfGridSize, 0.1, z - halfGridSize]}
+              />
+            );
+          })
+        )}
+      </a.group>
+    </group>
   );
 }

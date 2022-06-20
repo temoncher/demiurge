@@ -35,6 +35,7 @@ export default function Scene() {
       log.reduce<GameContext>(
         (ctx, entry) => ({
           timeLeft: ctx.timeLeft - entry.exploration.time - 12,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           tiles: applyExploration(entry.at, entry.exploration, ctx.tiles) as any,
         }),
         { tiles: emptyRows, timeLeft: TIME_LIMIT }
@@ -87,8 +88,7 @@ export default function Scene() {
           {/* <primitive object={new AxesHelper(15)} /> */}
           <Camera />
           <Lights />
-          <Grid gridIsEnabled={gridIsVisible} rows={gameContext.tiles} position={gridCenter.toArray()} />
-          <Ground size={gameContext.tiles.length} position={gridCenter.toArray()} />
+          <MainGrid gridIsEnabled={gridIsVisible} rows={gameContext.tiles} position={gridCenter.toArray()} />
           <ExplorationHub
             position={explorationHubCenter.toArray()}
             gridCenter={gridCenter}
@@ -124,31 +124,35 @@ function Camera() {
   return <OrthographicCamera makeDefault />;
 }
 
-type GridProps = {
+type MainGridProps = {
   gridIsEnabled: boolean;
   rows: (TerrainType | undefined)[][];
   position: Vector3Tuple;
 };
 
-function Grid(props: GridProps) {
+const GRID_MARGIN = 4;
+
+function MainGrid(props: MainGridProps) {
   const gridRef = useRef<Mesh<BufferGeometry, Material>>(null);
   const { setRef } = useContext(MainGridContext);
-  const [gridX, gridY, gridZ] = props.position;
-  const halfGridSize = Math.floor(props.rows.length / 2);
 
   useEffect(() => {
     setRef(gridRef.current!);
   }, [gridRef.current]);
 
-  const gridCenterPos: Vector3Tuple = [halfGridSize - gridX, gridY + 0.2, halfGridSize - gridZ];
+  const [gridX, gridY, gridZ] = props.position;
+  const halfGridSize = Math.floor(props.rows.length / 2);
+  const gridCenterPos: Vector3Tuple = [halfGridSize - gridX, gridY, halfGridSize - gridZ];
 
   return (
     <group position={gridCenterPos}>
-      <mesh ref={gridRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.1, 0]}>
-        <planeBufferGeometry attach="geometry" args={[props.rows.length, props.rows.length]} />
+      <mesh ref={gridRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.3, 0]}>
+        <planeBufferGeometry attach="geometry" args={[props.rows.length + GRID_MARGIN, props.rows.length + GRID_MARGIN]} />
         <meshBasicMaterial attach="material" side={DoubleSide} visible={false} />
       </mesh>
-      {props.gridIsEnabled && <gridHelper args={[props.rows.length, props.rows.length, 'blue', 'blue']} position={[0, 0.1, 0]} />}
+      {props.gridIsEnabled && (
+        <gridHelper args={[props.rows.length + GRID_MARGIN, props.rows.length + GRID_MARGIN, 'blue', 'blue']} position={[0, 0.3, 0]} />
+      )}
 
       {props.rows.map((row, x) =>
         row.map((terrainType, z) =>
@@ -157,11 +161,15 @@ function Grid(props: GridProps) {
               key={`(${x},${z})`}
               wireframe={false}
               color={terrainTypeToColorMap[terrainType]}
-              position={[x - halfGridSize, 0.1, z - halfGridSize]}
+              position={[x - halfGridSize, 0.3, z - halfGridSize]}
             />
           )
         )
       )}
+
+      <RoundedBox args={[props.rows.length, 0.5, props.rows.length]} radius={0.1}>
+        <meshLambertMaterial color="grey" />
+      </RoundedBox>
     </group>
   );
 }
@@ -179,16 +187,5 @@ function Lights() {
       {/* <spotLight ref={spotLightRef} position={[10, 15, 5]} angle={0.3} /> */}
       <directionalLight ref={directionalLightRef} position={[20, 10, 0]} intensity={1} />
     </>
-  );
-}
-
-function Ground(props: { size: number; position: [number, number, number] }) {
-  const [gridX, gridY, gridZ] = props.position;
-  const gridCenterPos: [number, number, number] = [Math.floor(props.size / 2) - gridX, gridY, Math.floor(props.size / 2) - gridZ];
-
-  return (
-    <RoundedBox args={[props.size, 0.5, props.size]} radius={0.1} position={gridCenterPos}>
-      <meshLambertMaterial color="grey" />
-    </RoundedBox>
   );
 }
