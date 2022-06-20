@@ -1,3 +1,5 @@
+import { Vector2Tuple } from 'three';
+
 export enum TerrainType {
   FOREST = 'FOREST',
   FIELDS = 'FIELDS',
@@ -18,3 +20,9 @@ export const terrainTypeToColorMap = {
   [TerrainType.SETTLEMENT]: 'maroon',
   [TerrainType.WATER]: 'royalblue',
 };
+
+export class WrongPositioningError extends Error {
+  constructor(public readonly coords: Vector2Tuple[]) {
+    super();
+  }
+}

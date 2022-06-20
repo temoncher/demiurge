@@ -1,27 +1,13 @@
-import { useSpring, a, AnimatedProps, config, animated } from '@react-spring/three';
 import { softShadows, OrthographicCamera, RoundedBox } from '@react-three/drei';
-import { Canvas, MeshProps, useFrame, useThree } from '@react-three/fiber';
-import { useDrag } from '@use-gesture/react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Vector3,
-  Plane,
-  Ray,
-  Mesh,
-  Material,
-  DirectionalLight,
-  Box3,
-  BufferGeometry,
-  DoubleSide,
-  Vector3Tuple,
-  Vector2Tuple,
-  AxesHelper,
-} from 'three';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import React, { useMemo, useRef, useState } from 'react';
+import { Vector3, Mesh, Material, DirectionalLight, BufferGeometry, DoubleSide, Vector3Tuple, Vector2Tuple, AxesHelper } from 'three';
 
-import { explorations } from './explorations';
+import ExplorationHub from './ExplorationHub';
+import Tile from './Tile';
+import { applyExploration } from './domain';
 import { Exploration, TerrainType, terrainTypeToColorMap } from './types';
 import useOrientation from './useOrientation';
-import { getRandomElement, isTouchDevice } from './utils';
 
 softShadows();
 
@@ -31,65 +17,6 @@ type GameContext = {
   tiles: (TerrainType | undefined)[][];
   timeLeft: number;
 };
-
-class WrongPositioningError extends Error {
-  constructor(public readonly coords: Vector2Tuple[]) {
-    super();
-  }
-}
-
-// eslint-disable-next-line complexity
-function applyExploration([rowIndex, columnIndex]: Vector2Tuple, exploration: Exploration, tileRows: (TerrainType | undefined)[][]) {
-  const updatedTileRows = tileRows.map((row) => [...row]);
-
-  const halfRowSize = Math.floor(exploration.mask.length / 2);
-
-  const errorCoors: Vector2Tuple[] = [];
-
-  for (let currentRowIndex = 0; currentRowIndex < exploration.mask.length; currentRowIndex++) {
-    const maskRow = exploration.mask[currentRowIndex]!;
-    const halfColumnSize = Math.floor(maskRow.length / 2);
-
-    for (let currentColumnIndex = 0; currentColumnIndex < maskRow.length; currentColumnIndex++) {
-      const maskColumn = maskRow[currentColumnIndex]!;
-
-      if (!maskColumn) continue;
-
-      const tileRowIndex = currentRowIndex + rowIndex - halfRowSize;
-      const tileColumnIndex = currentColumnIndex + columnIndex - halfColumnSize;
-
-      const row = updatedTileRows[tileRowIndex];
-
-      if (
-        tileRowIndex >= updatedTileRows.length ||
-        (row && tileColumnIndex >= row.length) ||
-        tileRowIndex < 0 ||
-        tileColumnIndex < 0 ||
-        (row && row[tileColumnIndex] !== undefined)
-      ) {
-        errorCoors.push([currentRowIndex, currentColumnIndex]);
-        continue;
-      }
-
-      row![tileColumnIndex] = exploration.type;
-    }
-  }
-
-  return errorCoors.length > 0 ? new WrongPositioningError(errorCoors) : updatedTileRows;
-}
-
-const MOBILE_TOUCH_OFFSET = 2;
-
-function adjustRayOriginForMobile(ray: Ray) {
-  const newRay = ray.clone();
-
-  if (isTouchDevice()) {
-    newRay.origin.x = newRay.origin.x - MOBILE_TOUCH_OFFSET;
-    newRay.origin.z = newRay.origin.z - MOBILE_TOUCH_OFFSET;
-  }
-
-  return newRay;
-}
 
 const emptyRows: (TerrainType | undefined)[][] = Array.from({ length: 11 }, () => Array.from({ length: 11 }, () => undefined));
 
@@ -177,8 +104,6 @@ export default function Scene() {
 const LANDSCAPE_FRACTION = 35;
 const PORTRAIT_FRACTION = 20;
 
-const AnimatedOrthographicCamera = animated(OrthographicCamera);
-
 function Camera() {
   const { isLandscape } = useOrientation();
 
@@ -194,7 +119,7 @@ function Camera() {
     camera.zoom = isLandscape ? window.innerWidth / LANDSCAPE_FRACTION : window.innerWidth / PORTRAIT_FRACTION;
   });
 
-  return <AnimatedOrthographicCamera makeDefault />;
+  return <OrthographicCamera makeDefault />;
 }
 
 type GridProps = {
@@ -247,113 +172,6 @@ function Lights() {
       {/* <spotLight ref={spotLightRef} position={[10, 15, 5]} angle={0.3} /> */}
       <directionalLight ref={directionalLightRef} position={[20, 10, 0]} intensity={1} />
     </>
-  );
-}
-
-const horizontalPlane = new Plane(new Vector3(0, 1, 0));
-
-type ExplorationHubProps = {
-  position: Vector3Tuple;
-  gridCenter: Vector3;
-  tiles: (TerrainType | undefined)[][];
-  gridRef: React.RefObject<Mesh<BufferGeometry, Material>>;
-  onGridDrop: (at: Vector2Tuple, exploration: Exploration) => void;
-};
-
-function ExplorationHub(props: ExplorationHubProps) {
-  const [wireframe, setWireframe] = useState(false);
-  const [error, setError] = useState<WrongPositioningError | null>(null);
-  const [currentExploration, setCurrentExploration] = useState<Exploration>(() => getRandomElement(explorations));
-  const [springPos, api] = useSpring(() => ({ position: props.position }));
-  const bind = useDrag<{ ray: Ray }>(({ down, event }) => {
-    const adjustedRay = adjustRayOriginForMobile(event.ray);
-
-    const box = new Box3().setFromObject(props.gridRef.current!);
-    // We can't use `intersectPlane`, because planes are infinite
-    const gridIntersection = adjustedRay.intersectBox(box, new Vector3());
-
-    if (down) {
-      setWireframe(true);
-
-      if (gridIntersection) {
-        const sum = new Vector3().addVectors(gridIntersection.clone().round(), props.gridCenter);
-        const updatedTiles = applyExploration([sum.x, sum.z], currentExploration, props.tiles);
-
-        setError(updatedTiles instanceof WrongPositioningError ? updatedTiles : null);
-        api.start({
-          position: gridIntersection.clone().round().setY(props.position[1]).toArray(),
-          config: config.stiff,
-        });
-      } else {
-        const horizontalPlaneIntesection = adjustedRay.intersectPlane(horizontalPlane, new Vector3())!;
-
-        setError(null);
-        api.start({
-          position: horizontalPlaneIntesection.clone().setY(props.position[1]).toArray(),
-        });
-      }
-    } else {
-      setWireframe(false);
-      setError(null);
-
-      if (gridIntersection) {
-        const sum = new Vector3().addVectors(gridIntersection.clone().round(), props.gridCenter);
-        const updatedTiles = applyExploration([sum.x, sum.z], currentExploration, props.tiles);
-
-        if (updatedTiles instanceof WrongPositioningError) {
-          api.start({ position: props.position });
-        } else {
-          props.onGridDrop([sum.x, sum.z], currentExploration);
-          setCurrentExploration({ ...getRandomElement(explorations) });
-        }
-      } else {
-        api.start({ position: props.position });
-      }
-    }
-  });
-
-  useEffect(() => {
-    api.start({ immediate: true, position: props.position });
-  }, [props.position]);
-
-  useEffect(() => {
-    api.start({ immediate: true, position: props.position });
-  }, [currentExploration]);
-
-  const halfGridSize = Math.floor(currentExploration.mask.length / 2);
-
-  return (
-    <a.group {...springPos} {...bind()}>
-      <mesh ref={props.gridRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.1, 0]}>
-        <planeBufferGeometry attach="geometry" args={[currentExploration.mask.length, currentExploration.mask.length]} />
-        <meshBasicMaterial attach="material" side={DoubleSide} visible={false} />
-      </mesh>
-      {currentExploration.mask.map((row, x) =>
-        row.map((hasTile, z) => {
-          if (hasTile === 0) return null;
-
-          const hasError = error?.coords.some(([errX, errZ]) => errX === x && errZ === z);
-
-          return (
-            <Tile
-              key={`(${x},${z})`}
-              wireframe={wireframe}
-              color={hasError ? 'red' : terrainTypeToColorMap[currentExploration.type]}
-              position={[x - halfGridSize, 0.1, z - halfGridSize]}
-            />
-          );
-        })
-      )}
-    </a.group>
-  );
-}
-
-function Tile({ color, wireframe, ...props }: { color: string; wireframe: boolean } & AnimatedProps<MeshProps>) {
-  return (
-    <a.mesh {...props}>
-      <boxBufferGeometry attach="geometry" args={[0.8, 0.1, 0.8]} />
-      <meshLambertMaterial wireframe={wireframe} attach="material" color={color} />
-    </a.mesh>
   );
 }
 
