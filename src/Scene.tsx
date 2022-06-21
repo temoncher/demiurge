@@ -1,5 +1,5 @@
 import { softShadows, OrthographicCamera, RoundedBox, useContextBridge } from '@react-three/drei';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Vector3, Mesh, Material, DirectionalLight, BufferGeometry, DoubleSide, Vector3Tuple, Vector2Tuple, AxesHelper } from 'three';
 
@@ -110,16 +110,13 @@ const PORTRAIT_FRACTION = 20;
 function Camera() {
   const { isLandscape } = useOrientation();
 
-  useThree(({ camera }) => {
+  useFrame(({ camera }) => {
     const vec = new Vector3(100, 100, 100);
 
+    camera.zoom = isLandscape ? window.innerWidth / LANDSCAPE_FRACTION : window.innerWidth / PORTRAIT_FRACTION;
     camera.position.lerp(vec, 0.1);
     camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
-  });
-
-  useFrame(({ camera }) => {
-    camera.zoom = isLandscape ? window.innerWidth / LANDSCAPE_FRACTION : window.innerWidth / PORTRAIT_FRACTION;
   });
 
   return <OrthographicCamera makeDefault />;
