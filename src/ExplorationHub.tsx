@@ -25,13 +25,13 @@ const rotateNTimes = <T,>(matrix: T[][], numberOfTimes = 1) => {
 
   return res;
 };
-const MOBILE_TOUCH_OFFSET = 2;
+const MOBILE_TOUCH_OFFSET = 5;
 
 function adjustRayOriginForMobile(ray: Ray) {
   const newRay = ray.clone();
 
   if (isTouchDevice()) {
-    newRay.origin.x = newRay.origin.x - MOBILE_TOUCH_OFFSET;
+    newRay.origin.x = newRay.origin.x - MOBILE_TOUCH_OFFSET * 1.5;
     newRay.origin.z = newRay.origin.z - MOBILE_TOUCH_OFFSET;
   }
 
