@@ -94,7 +94,6 @@ export default function Scene() {
             gridCenter={gridCenter}
             tiles={gameContext.tiles}
             onGridDrop={(at, exploration) => {
-              console.log(at);
               setLog([...log, { at, exploration }]);
             }}
           />
