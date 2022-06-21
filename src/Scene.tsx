@@ -6,8 +6,8 @@ import { Vector3, Mesh, Material, DirectionalLight, BufferGeometry, DoubleSide, 
 import ExplorationHub from './ExplorationHub';
 import { MainGridContext } from './MainGridContext';
 import Tile from './Tile';
-import { applyExploration } from './domain';
-import { Exploration, TerrainType, terrainTypeToColorMap } from './types';
+import { applyExploration, computeErrorsMatrix } from './domain';
+import { Exploration, TerrainType, terrainTypeToColorMap, WrongPositioningError } from './types';
 import useOrientation from './useOrientation';
 
 softShadows();
@@ -33,11 +33,16 @@ export default function Scene() {
   const gameContext = useMemo(
     () =>
       log.reduce<GameContext>(
-        (ctx, entry) => ({
-          timeLeft: ctx.timeLeft - entry.exploration.time,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          tiles: applyExploration(entry.at, entry.exploration.mask, entry.exploration.type, ctx.tiles) as any,
-        }),
+        (ctx, entry) => {
+          const newTiles = applyExploration(entry.at, entry.exploration.mask, entry.exploration.type, ctx.tiles);
+
+          if (newTiles instanceof WrongPositioningError) throw new Error('Unexpected case: corrupted logs data');
+
+          return {
+            timeLeft: ctx.timeLeft - entry.exploration.time,
+            tiles: newTiles,
+          };
+        },
         { tiles: emptyRows, timeLeft: TIME_LIMIT }
       ),
     [log]
@@ -92,7 +97,7 @@ export default function Scene() {
           <ExplorationHub
             position={explorationHubCenter.toArray()}
             gridCenter={gridCenter}
-            tiles={gameContext.tiles}
+            computeErrorsMatrix={(at, explorationMask) => computeErrorsMatrix(explorationMask, gameContext.tiles, at)}
             onGridDrop={(at, exploration) => {
               setLog([...log, { at, exploration }]);
             }}

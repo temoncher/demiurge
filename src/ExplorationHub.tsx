@@ -5,9 +5,8 @@ import { Plane, Vector3, Vector3Tuple, Vector2Tuple, Ray, Box3, DoubleSide, Grou
 
 import { MainGridContext } from './MainGridContext';
 import Tile from './Tile';
-import { applyExploration } from './domain';
 import { explorations } from './explorations';
-import { TerrainType, Exploration, terrainTypeToColorMap, WrongPositioningError } from './types';
+import { Exploration, terrainTypeToColorMap } from './types';
 import { getRandomElement, isTouchDevice } from './utils';
 
 const isEven = (num: number) => num % 2 === 0;
@@ -25,6 +24,7 @@ const rotateNTimes = <T,>(matrix: T[][], numberOfTimes = 1) => {
 
   return res;
 };
+
 const MOBILE_TOUCH_OFFSET = 5;
 
 function adjustRayOriginForMobile(ray: Ray) {
@@ -43,7 +43,7 @@ const horizontalPlane = new Plane(new Vector3(0, 1, 0));
 type ExplorationHubProps = {
   position: Vector3Tuple;
   gridCenter: Vector3;
-  tiles: (TerrainType | null)[][];
+  computeErrorsMatrix: (at: Vector2Tuple, explorationMask: Exploration['mask']) => boolean[][] | null;
   onGridDrop: (at: Vector2Tuple, exploration: Exploration) => void;
 };
 
@@ -57,9 +57,9 @@ export default function ExplorationHub(props: ExplorationHubProps) {
   const [errorMatrix, setErrorMatrix] = useState<boolean[][] | null>(null);
   const [currentExploration, setCurrentExploration] = useState<Exploration>(() => getRandomElement(explorationsLeft));
   const [rotations, setRotations] = useState(0);
-  const currentRotationEulerTuple = [0, (Math.PI / 2) * rotations, 0];
   const rotatedErrorMatrix = useMemo(() => (errorMatrix ? rotateNTimes(errorMatrix, rotations * -1) : null), [errorMatrix, rotations]);
   const rotatedMask = useMemo(() => rotateNTimes(currentExploration.mask, rotations), [currentExploration.mask, rotations]);
+  const currentRotationEulerTuple = [0, (Math.PI / 2) * rotations, 0];
 
   const [explorationSpring, explorationSpringApi] = useSpring(() => defaultExplorationSpring);
   const bind = useDrag<{ ray: Ray }>(({ down, event }) => {
@@ -74,13 +74,12 @@ export default function ExplorationHub(props: ExplorationHubProps) {
       setIsDragged(true);
 
       if (gridIntersection) {
-        const sum = new Vector3().addVectors(gridIntersection.clone().floor(), props.gridCenter);
+        const sum = new Vector3().addVectors(gridIntersection.clone().round(), props.gridCenter);
+        const newErrorMatrix = props.computeErrorsMatrix([sum.x, sum.z], rotatedMask);
 
-        const updatedTiles = applyExploration([sum.x, sum.z], rotatedMask, currentExploration.type, props.tiles);
-
-        setErrorMatrix(updatedTiles instanceof WrongPositioningError ? updatedTiles.matrix : null);
+        setErrorMatrix(newErrorMatrix);
         explorationSpringApi.start({
-          position: new Vector3().addVectors(gridIntersection, groupOffsetVector.negate()).floor().setY(0).toArray(),
+          position: new Vector3().addVectors(gridIntersection, groupOffsetVector.negate()).round().setY(0).toArray(),
           scale: 1,
           config: config.stiff,
         });
@@ -98,10 +97,10 @@ export default function ExplorationHub(props: ExplorationHubProps) {
       setErrorMatrix(null);
 
       if (gridIntersection) {
-        const sum = new Vector3().addVectors(gridIntersection.clone().floor(), props.gridCenter);
-        const updatedTiles = applyExploration([sum.x, sum.z], rotatedMask, currentExploration.type, props.tiles);
+        const sum = new Vector3().addVectors(gridIntersection.clone().round(), props.gridCenter);
+        const newErrorMatrix = props.computeErrorsMatrix([sum.x, sum.z], rotatedMask);
 
-        if (updatedTiles instanceof WrongPositioningError) {
+        if (newErrorMatrix) {
           explorationSpringApi.start({ ...defaultExplorationSpring, rotation: currentRotationEulerTuple });
         } else {
           props.onGridDrop([sum.x, sum.z], { ...currentExploration, mask: rotatedMask });
@@ -123,7 +122,7 @@ export default function ExplorationHub(props: ExplorationHubProps) {
 
   useEffect(() => {
     setRotations(0);
-    setCurrentExploration(getRandomElement(explorationsLeft));
+    setCurrentExploration(explorations.find((ex) => ex.name === 'Farm')!);
   }, [explorationsLeft]);
 
   useEffect(() => {

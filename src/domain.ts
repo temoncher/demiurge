@@ -20,6 +20,30 @@ function intersect<M, O, V>(
   );
 }
 
+export function computeErrorsMatrix(mask: Exploration['mask'], tileRows: (TerrainType | null)[][], [rowIndex, columnIndex]: Vector2Tuple) {
+  let hasErrors = false;
+
+  const matrix = intersect(
+    mask,
+    tileRows,
+    (m, tr) => {
+      if (!m) return false;
+
+      if (tr !== null) {
+        hasErrors = true;
+
+        return true;
+      }
+
+      return false;
+    },
+    [rowIndex, columnIndex]
+  );
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  return hasErrors ? matrix : null;
+}
+
 // eslint-disable-next-line complexity, import/prefer-default-export
 export function applyExploration(
   [rowIndex, columnIndex]: Vector2Tuple,
@@ -27,6 +51,10 @@ export function applyExploration(
   terrainType: Exploration['type'],
   tileRows: (TerrainType | null)[][]
 ) {
+  const errorMatrix = computeErrorsMatrix(mask, tileRows, [rowIndex, columnIndex]);
+
+  if (errorMatrix) return new WrongPositioningError(errorMatrix);
+
   const updatedTileRows = tileRows.map((row) => [...row]);
 
   const halfRowSize = Math.floor(mask.length / 2);
@@ -59,18 +87,5 @@ export function applyExploration(
     }
   }
 
-  const errorMatrix = intersect(
-    mask,
-    tileRows,
-    (m, tr) => {
-      if (!m) return false;
-
-      if (tr !== null) return true;
-
-      return false;
-    },
-    [rowIndex, columnIndex]
-  );
-
-  return errorMatrix.some((row) => row.some((isError) => isError)) ? new WrongPositioningError(errorMatrix) : updatedTileRows;
+  return updatedTileRows;
 }
