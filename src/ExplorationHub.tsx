@@ -137,22 +137,22 @@ export default function ExplorationHub(props: ExplorationHubProps) {
     <group position={props.position}>
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[7, 0.1, 3]}
+        position={[10, 0.1, 4]}
         onClick={() => {
           setRotations((prevRotations) => prevRotations + 1);
         }}
       >
-        <planeBufferGeometry attach="geometry" args={[2, 2]} />
+        <planeBufferGeometry attach="geometry" args={[4, 4]} />
         <meshBasicMaterial attach="material" side={DoubleSide} color="coral" />
       </mesh>
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[3, 0.1, 7]}
+        position={[4, 0.1, 10]}
         onClick={() => {
           setRotations((prevRotations) => prevRotations - 1);
         }}
       >
-        <planeBufferGeometry attach="geometry" args={[2, 2]} />
+        <planeBufferGeometry attach="geometry" args={[4, 4]} />
         <meshBasicMaterial attach="material" side={DoubleSide} color="lime" />
       </mesh>
 

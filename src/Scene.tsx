@@ -43,8 +43,8 @@ export default function Scene() {
     [log]
   );
   const { isLandscape } = useOrientation();
-  const gridCenter = isLandscape ? new Vector3(9, 0, 1) : new Vector3(18, 0, 18);
-  const explorationHubCenter = isLandscape ? new Vector3(10, 0.4, -5) : new Vector3(15, 0.4, 15);
+  const gridCenter = isLandscape ? new Vector3(10, 0, 0) : new Vector3(18, 0, 18);
+  const explorationHubCenter = isLandscape ? new Vector3(4, 0.4, -8) : new Vector3(8, 0.4, 8);
 
   return (
     <>
