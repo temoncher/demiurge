@@ -83,7 +83,6 @@ module.exports = {
       2,
       'data',
       'err',
-      'e',
       'cb',
       'i',
       'idx',

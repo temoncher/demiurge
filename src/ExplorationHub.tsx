@@ -5,7 +5,7 @@ import { Plane, Vector3, Vector3Tuple, Vector2Tuple, Ray, Box3, DoubleSide, Grou
 
 import { ExplorationView } from './ExmplorationView';
 import { MainGridContext } from './MainGridContext';
-import { explorations } from './explorations';
+import { explorations } from './content/explorations';
 import { Exploration } from './types';
 import { getRandomElement, isTouchDevice } from './utils';
 

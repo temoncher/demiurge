@@ -4,5 +4,5 @@
     "module": "esnext",
     "moduleResolution": "node"
   },
-  "files": ["vite.config.ts", ".prettierrc.js", ".eslintrc.js"]
+  "files": ["vite.config.ts", "vitest.config.ts", ".prettierrc.js", ".eslintrc.js"]
 }

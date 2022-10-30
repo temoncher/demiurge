@@ -6,19 +6,15 @@ import { Vector3, Mesh, Material, DirectionalLight, BufferGeometry, DoubleSide, 
 import { ExplorationHub } from './ExplorationHub';
 import { MainGridContext } from './MainGridContext';
 import { Tile } from './Tile';
+import { allChallenges } from './content/challenges';
+import { startingTilesB } from './content/startingTiles';
 import { applyExploration, computeErrorsMatrix } from './domain';
-import { startingTilesB } from './startingTiles';
-import { Exploration, TerrainType, terrainTypeToColorMap, WrongPositioningError } from './types';
+import { Exploration, GameContext, TerrainType, terrainTypeToColorMap, WrongPositioningError } from './types';
 import useOrientation from './useOrientation';
 
 softShadows();
 
 const TIME_LIMIT = 6 + 7 + 8 + 8;
-
-type GameContext = {
-  tiles: (TerrainType | null)[][];
-  timeLeft: number;
-};
 
 type LogEntry = {
   exploration: Exploration;
@@ -46,6 +42,7 @@ export function Scene() {
       ),
     [log]
   );
+  const points = Object.values(allChallenges).reduce((acc, c) => acc + c.calculatePoints(gameContext), 0);
   const { isLandscape } = useOrientation();
   const gridCenter = isLandscape ? new Vector3(10, 0, 0) : new Vector3(18, 0, 18);
   const explorationHubCenter = isLandscape ? new Vector3(4, 0.4, -8) : new Vector3(8, 0.4, 8);
@@ -60,7 +57,10 @@ export function Scene() {
       >
         Toggle grid
       </button>
-      <div style={{ position: 'absolute', zIndex: 10, right: 0 }}>{gameContext.timeLeft < 0 ? 0 : gameContext.timeLeft}</div>
+      <div style={{ position: 'absolute', zIndex: 10, right: 0 }}>
+        <p>Time left: {gameContext.timeLeft < 0 ? 0 : gameContext.timeLeft}</p>
+        <p>Points: {points}</p>
+      </div>
       {gameContext.timeLeft <= 0 && (
         <div
           style={{
@@ -92,6 +92,7 @@ export function Scene() {
           {/* <primitive object={new AxesHelper(15)} /> */}
           <Camera />
           <Lights />
+          {/* TODO: figure out rotation */}
           <MainGrid gridIsEnabled={gridIsVisible} rows={gameContext.tiles} position={gridCenter.toArray()} />
           <ExplorationHub
             position={explorationHubCenter.toArray()}

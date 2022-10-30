@@ -1,4 +1,4 @@
-import { Exploration, TerrainType } from './types';
+import { Exploration, TerrainType } from '../types';
 
 // eslint-disable-next-line import/prefer-default-export
 export const explorations: Exploration[] = [
@@ -15,7 +15,7 @@ export const explorations: Exploration[] = [
   {
     time: 1,
     name: 'Forgotten forest',
-    type: TerrainType.FOREST,
+    type: TerrainType.TREES,
     mask: [
       [0, 1, 1],
       [1, 1, 0],
@@ -58,7 +58,7 @@ export const explorations: Exploration[] = [
   {
     time: 2,
     name: 'Swamp',
-    type: TerrainType.FOREST,
+    type: TerrainType.TREES,
     mask: [
       [1, 0, 0],
       [1, 1, 1],
@@ -93,7 +93,7 @@ export const explorations: Exploration[] = [
   {
     time: 2,
     name: 'Garden',
-    type: TerrainType.FOREST,
+    type: TerrainType.TREES,
     mask: [
       [1, 1, 1],
       [0, 0, 1],

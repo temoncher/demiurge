@@ -1,9 +1,6 @@
-/* eslint-disable id-denylist */
-import { TerrainType } from './types';
+import { TerrainType, tt } from '../types';
 
-const M = TerrainType.MOUNTAIN;
-const C = TerrainType.CAVERN;
-const e = null;
+const { M, C, e } = tt;
 
 export const startingTilesA: (TerrainType | null)[][] = [
   [e, e, e, e, e, e, e, e, e, e, e],
