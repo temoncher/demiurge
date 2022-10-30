@@ -3,6 +3,8 @@ export enum TerrainType {
   FIELDS = 'FIELDS',
   SETTLEMENT = 'SETTLEMENT',
   WATER = 'WATER',
+  MOUNTAIN = 'MOUNTAIN',
+  CAVERN = 'CAVERN',
 }
 
 export type Exploration = {
@@ -17,6 +19,8 @@ export const terrainTypeToColorMap = {
   [TerrainType.FOREST]: 'forestgreen',
   [TerrainType.SETTLEMENT]: 'maroon',
   [TerrainType.WATER]: 'royalblue',
+  [TerrainType.MOUNTAIN]: 'brown',
+  [TerrainType.CAVERN]: 'black',
 };
 
 export class WrongPositioningError extends Error {

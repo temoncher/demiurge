@@ -125,10 +125,20 @@ export function ExplorationHub(props: ExplorationHubProps) {
 
   useEffect(() => {
     dragGroupSpringApi.start({ immediate: true, ...defaultDragGroupSpringValues });
+    rotationGroupSpringApi.start({
+      immediate: true,
+      rotation: currentRotationEulerTuple,
+      position: defaultRotationGroupPosition,
+    });
   }, [props.position]);
 
   useEffect(() => {
     dragGroupSpringApi.start({ immediate: true, ...defaultDragGroupSpringValues });
+    rotationGroupSpringApi.start({
+      immediate: true,
+      rotation: currentRotationEulerTuple,
+      position: defaultRotationGroupPosition,
+    });
   }, [currentExploration]);
 
   useEffect(() => {

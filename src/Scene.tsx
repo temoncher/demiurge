@@ -7,6 +7,7 @@ import { ExplorationHub } from './ExplorationHub';
 import { MainGridContext } from './MainGridContext';
 import { Tile } from './Tile';
 import { applyExploration, computeErrorsMatrix } from './domain';
+import { startingTilesB } from './startingTiles';
 import { Exploration, TerrainType, terrainTypeToColorMap, WrongPositioningError } from './types';
 import useOrientation from './useOrientation';
 
@@ -19,14 +20,12 @@ type GameContext = {
   timeLeft: number;
 };
 
-const emptyRows: (TerrainType | null)[][] = Array.from({ length: 11 }, () => Array.from({ length: 11 }, () => null));
-
 type LogEntry = {
   exploration: Exploration;
   at: Vector2Tuple;
 };
 
-export default function Scene() {
+export function Scene() {
   const ContextBridge = useContextBridge(MainGridContext);
   const [gridIsVisible, setGridVisibility] = useState(false);
   const [log, setLog] = useState<LogEntry[]>([]);
@@ -43,7 +42,7 @@ export default function Scene() {
             tiles: newTiles,
           };
         },
-        { tiles: emptyRows, timeLeft: TIME_LIMIT }
+        { tiles: startingTilesB, timeLeft: TIME_LIMIT }
       ),
     [log]
   );
