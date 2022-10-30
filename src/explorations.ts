@@ -48,7 +48,7 @@ export const explorations: Exploration[] = [
   {
     time: 2,
     name: 'River in the fields',
-    type: TerrainType.WATER,
+    type: TerrainType.FIELDS,
     mask: [
       [1, 1, 1],
       [1, 0, 0],
@@ -58,11 +58,54 @@ export const explorations: Exploration[] = [
   {
     time: 2,
     name: 'Swamp',
-    type: TerrainType.WATER,
+    type: TerrainType.FOREST,
     mask: [
       [1, 0, 0],
       [1, 1, 1],
       [1, 0, 0],
+    ],
+  },
+  {
+    time: 0,
+    name: 'Anomaly',
+    type: TerrainType.FIELDS,
+    mask: [[1]],
+  },
+  {
+    time: 1,
+    name: 'Town',
+    type: TerrainType.SETTLEMENT,
+    mask: [
+      [1, 0],
+      [1, 1],
+    ],
+  },
+  {
+    time: 1,
+    name: 'Great river',
+    type: TerrainType.WATER,
+    mask: [
+      [0, 0, 1],
+      [0, 1, 1],
+      [1, 1, 0],
+    ],
+  },
+  {
+    time: 2,
+    name: 'Garden',
+    type: TerrainType.FOREST,
+    mask: [
+      [1, 1, 1],
+      [0, 0, 1],
+    ],
+  },
+  {
+    time: 2,
+    name: 'Forest huts',
+    type: TerrainType.SETTLEMENT,
+    mask: [
+      [0, 0, 1, 1],
+      [1, 1, 1, 0],
     ],
   },
 ];

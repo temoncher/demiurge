@@ -1,11 +1,16 @@
-export enum TerrainType {
-  FOREST = 'FOREST',
-  FIELDS = 'FIELDS',
-  SETTLEMENT = 'SETTLEMENT',
-  WATER = 'WATER',
-  MOUNTAIN = 'MOUNTAIN',
-  CAVERN = 'CAVERN',
-}
+type ValueOf<T extends Record<string, unknown>> = T[keyof T];
+
+export const TerrainType = {
+  FOREST: 'FOREST',
+  FIELDS: 'FIELDS',
+  SETTLEMENT: 'SETTLEMENT',
+  WATER: 'WATER',
+  MOUNTAIN: 'MOUNTAIN',
+  CAVERN: 'CAVERN',
+};
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type TerrainType = ValueOf<typeof TerrainType>;
 
 export type Exploration = {
   time: number;
