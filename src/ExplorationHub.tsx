@@ -1,24 +1,19 @@
 import { useSpring, config, a } from '@react-spring/three';
 import { useDrag } from '@use-gesture/react';
-import { useContext, useState, useEffect, useRef, useMemo } from 'react';
+import { useContext, useState, useEffect, useRef } from 'react';
 import { Plane, Vector3, Vector3Tuple, Vector2Tuple, Ray, Box3, DoubleSide, Group } from 'three';
 
+import { ExplorationView } from './ExmplorationView';
 import { MainGridContext } from './MainGridContext';
-import Tile from './Tile';
 import { explorations } from './explorations';
-import { Exploration, terrainTypeToColorMap } from './types';
+import { Exploration } from './types';
 import { getRandomElement, isTouchDevice } from './utils';
 
-const isEven = (num: number) => num % 2 === 0;
-
 const rotate = <T,>(matrix: T[][]) => matrix[0]!.map((col, c) => matrix.map((row, r) => matrix[r]![c]!).reverse());
-const rotateNTimes = <T,>(matrix: T[][], numberOfTimes = 1) => {
-  const croppedNumber = numberOfTimes % 4;
-  const adjustedNumber = croppedNumber < 0 ? croppedNumber + 4 : croppedNumber;
-
+const rotateNTimes = <T,>(matrix: T[][], numberOfTimes: number) => {
   let res = matrix;
 
-  Array.from({ length: adjustedNumber }).forEach(() => {
+  Array.from({ length: numberOfTimes }).forEach(() => {
     res = rotate(res);
   });
 
@@ -47,90 +42,106 @@ type ExplorationHubProps = {
   onGridDrop: (at: Vector2Tuple, exploration: Exploration) => void;
 };
 
-const defaultExplorationSpring = { position: [0, 0, 0], scale: 2, rotation: [0, 0, 0] };
-export default function ExplorationHub(props: ExplorationHubProps) {
+const defaultDragGroupSpringValues = { position: [0, 0, 0], scale: 2 };
+
+// eslint-disable-next-line complexity
+export function ExplorationHub(props: ExplorationHubProps) {
   const { mainGridRef } = useContext(MainGridContext);
-  const explorationGridRef = useRef<Group>(null);
+  const dragGroupRef = useRef<Group>(null);
+  const rotationGroupRef = useRef<Group>(null);
 
   const [isDragged, setIsDragged] = useState(false);
   const [explorationsLeft, setExplorationsLeft] = useState(() => explorations);
   const [errorMatrix, setErrorMatrix] = useState<boolean[][] | null>(null);
   const [currentExploration, setCurrentExploration] = useState<Exploration>(() => getRandomElement(explorationsLeft));
   const [rotations, setRotations] = useState(0);
-  const rotatedErrorMatrix = useMemo(() => (errorMatrix ? rotateNTimes(errorMatrix, rotations * -1) : null), [errorMatrix, rotations]);
-  const rotatedMask = useMemo(() => rotateNTimes(currentExploration.mask, rotations), [currentExploration.mask, rotations]);
-  const currentRotationEulerTuple = [0, (Math.PI / 2) * rotations, 0];
 
-  const [explorationSpring, explorationSpringApi] = useSpring(() => defaultExplorationSpring);
-  const bind = useDrag<{ ray: Ray }>(({ down, event }) => {
-    const groupOffsetVector = explorationGridRef.current!.parent!.getWorldPosition(new Vector3());
+  const adjustedNumber = rotations % 4;
+  const croppedRotation = adjustedNumber < 0 ? adjustedNumber + 4 : adjustedNumber;
+  const rotatedErrorMatrix = errorMatrix ? rotateNTimes(errorMatrix, 4 - croppedRotation) : null;
+  const rotatedMask = rotateNTimes(currentExploration.mask, croppedRotation);
+
+  const [dragGroupSpring, dragGroupSpringApi] = useSpring(() => defaultDragGroupSpringValues);
+  const currentRotationEulerTuple = [0, (Math.PI / 2) * rotations, 0];
+  const rotationGroupX = croppedRotation === 2 || croppedRotation === 3 ? 0 : 1 - rotatedMask.length;
+  const rotationGroupZ = croppedRotation === 2 || croppedRotation === 1 ? 0 : 1 - rotatedMask[0]!.length;
+  const defaultRotationGroupPosition = [rotationGroupX, 0, rotationGroupZ];
+  const [rotationGroupSpring, rotationGroupSpringApi] = useSpring(() => ({
+    rotation: [0, 0, 0],
+    position: defaultRotationGroupPosition,
+  }));
+
+  // eslint-disable-next-line complexity
+  const bindDrag = useDrag<{ ray: Ray }>(({ down, event }) => {
+    rotationGroupSpringApi.start({ position: defaultRotationGroupPosition });
+
+    const hubGroup = dragGroupRef.current!.parent!;
     const adjustedRay = adjustRayOriginForMobile(event.ray);
 
-    const box = new Box3().setFromObject(mainGridRef);
     // We can't use `intersectPlane`, because planes are infinite
-    const gridIntersection = adjustedRay.intersectBox(box, new Vector3());
+    const gridIntersection = adjustedRay.intersectBox(new Box3().setFromObject(mainGridRef), new Vector3());
 
-    if (down) {
-      setIsDragged(true);
+    setIsDragged(down);
 
-      if (gridIntersection) {
-        const sum = new Vector3().addVectors(gridIntersection.clone().round(), props.gridCenter);
-        const newErrorMatrix = props.computeErrorsMatrix([sum.x, sum.z], rotatedMask);
+    if (!down) setErrorMatrix(null);
 
+    if (!gridIntersection && !down) {
+      dragGroupSpringApi.start(defaultDragGroupSpringValues);
+    }
+
+    if (!gridIntersection && down) {
+      const horizontalPlaneIntesection = adjustedRay.intersectPlane(horizontalPlane, new Vector3())!;
+
+      setErrorMatrix(null);
+      dragGroupSpringApi.start({
+        position: hubGroup.worldToLocal(horizontalPlaneIntesection).setY(0).toArray(),
+        scale: 1,
+      });
+    }
+
+    if (gridIntersection) {
+      const sum = new Vector3().addVectors(gridIntersection, props.gridCenter).round();
+      const newErrorMatrix = props.computeErrorsMatrix([sum.x, sum.z], rotatedMask);
+
+      if (down) {
         setErrorMatrix(newErrorMatrix);
-        explorationSpringApi.start({
-          position: new Vector3().addVectors(gridIntersection, groupOffsetVector.negate()).round().setY(0).toArray(),
+        dragGroupSpringApi.start({
+          position: hubGroup.worldToLocal(gridIntersection).round().setY(0).toArray(),
           scale: 1,
           config: config.stiff,
         });
-      } else {
-        const horizontalPlaneIntesection = adjustedRay.intersectPlane(horizontalPlane, new Vector3())!;
-
-        setErrorMatrix(null);
-        explorationSpringApi.start({
-          position: new Vector3().addVectors(horizontalPlaneIntesection, groupOffsetVector.negate()).setY(0).toArray(),
-          scale: 1,
-        });
       }
-    } else {
-      setIsDragged(false);
-      setErrorMatrix(null);
 
-      if (gridIntersection) {
-        const sum = new Vector3().addVectors(gridIntersection.clone().round(), props.gridCenter);
-        const newErrorMatrix = props.computeErrorsMatrix([sum.x, sum.z], rotatedMask);
-
+      if (!down) {
         if (newErrorMatrix) {
-          explorationSpringApi.start({ ...defaultExplorationSpring, rotation: currentRotationEulerTuple });
+          dragGroupSpringApi.start(defaultDragGroupSpringValues);
         } else {
           props.onGridDrop([sum.x, sum.z], { ...currentExploration, mask: rotatedMask });
           setExplorationsLeft(explorationsLeft.filter((ex) => ex.name !== currentExploration.name));
         }
-      } else {
-        explorationSpringApi.start({ ...defaultExplorationSpring, rotation: currentRotationEulerTuple });
       }
     }
   });
 
   useEffect(() => {
-    explorationSpringApi.start({ immediate: true, ...defaultExplorationSpring });
+    dragGroupSpringApi.start({ immediate: true, ...defaultDragGroupSpringValues });
   }, [props.position]);
 
   useEffect(() => {
-    explorationSpringApi.start({ immediate: true, ...defaultExplorationSpring });
+    dragGroupSpringApi.start({ immediate: true, ...defaultDragGroupSpringValues });
   }, [currentExploration]);
 
   useEffect(() => {
     setRotations(0);
-    setCurrentExploration(explorations.find((ex) => ex.name === 'Farm')!);
+    setCurrentExploration(getRandomElement(explorationsLeft));
   }, [explorationsLeft]);
 
   useEffect(() => {
-    explorationSpringApi.start({ rotation: currentRotationEulerTuple });
-  }, [rotations]);
-
-  const halfMaskRowSize = Math.floor(currentExploration.mask.length / 2) - (isEven(currentExploration.mask.length) && !isDragged ? 0.5 : 0);
-  const halfMaskColSize = Math.floor(currentExploration.mask[0]!.length / 2) - (isEven(currentExploration.mask[0]!.length) && !isDragged ? 0.5 : 0);
+    rotationGroupSpringApi.start({
+      rotation: currentRotationEulerTuple,
+      position: defaultRotationGroupPosition,
+    });
+  }, [croppedRotation]);
 
   return (
     <group position={props.position}>
@@ -156,24 +167,16 @@ export default function ExplorationHub(props: ExplorationHubProps) {
       </mesh>
 
       {/* @ts-expect-error bind type mismatch */}
-      <a.group ref={explorationGridRef} {...explorationSpring} {...bind()}>
-        {currentExploration.mask.map((row, x) =>
-          row.map((hasTile, z) => {
-            if (hasTile === 0) return null;
-
-            const hasError = rotatedErrorMatrix?.[x]?.[z];
-
-            return (
-              <Tile
-                key={`(${x},${z})`}
-                spacing={0.1}
-                wireframe={isDragged}
-                color={hasError ? 'red' : terrainTypeToColorMap[currentExploration.type]}
-                position={[x - halfMaskRowSize, 0.1, z - halfMaskColSize]}
-              />
-            );
-          })
-        )}
+      <a.group ref={dragGroupRef} {...dragGroupSpring} {...bindDrag()}>
+        {/* @ts-expect-error bind type mismatch */}
+        <ExplorationView
+          ref={rotationGroupRef}
+          terrainType={currentExploration.type}
+          mask={currentExploration.mask}
+          errorMatrix={rotatedErrorMatrix}
+          wireframe={isDragged}
+          {...rotationGroupSpring}
+        />
       </a.group>
     </group>
   );

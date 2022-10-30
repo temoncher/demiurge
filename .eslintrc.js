@@ -58,7 +58,7 @@ module.exports = {
         ],
       },
     ],
-    'import/prefer-default-export': 1,
+    'import/no-default-export': 1,
     'import/extensions': 0,
     'no-self-compare': 2,
     'arrow-body-style': 1,

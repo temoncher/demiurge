@@ -1,11 +1,11 @@
 import { softShadows, OrthographicCamera, RoundedBox, useContextBridge } from '@react-three/drei';
 import { Canvas, useFrame } from '@react-three/fiber';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Vector3, Mesh, Material, DirectionalLight, BufferGeometry, DoubleSide, Vector3Tuple, Vector2Tuple, AxesHelper } from 'three';
+import { Vector3, Mesh, Material, DirectionalLight, BufferGeometry, DoubleSide, Vector3Tuple, Vector2Tuple } from 'three';
 
-import ExplorationHub from './ExplorationHub';
+import { ExplorationHub } from './ExplorationHub';
 import { MainGridContext } from './MainGridContext';
-import Tile from './Tile';
+import { Tile } from './Tile';
 import { applyExploration, computeErrorsMatrix } from './domain';
 import { Exploration, TerrainType, terrainTypeToColorMap, WrongPositioningError } from './types';
 import useOrientation from './useOrientation';

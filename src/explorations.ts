@@ -17,9 +17,8 @@ export const explorations: Exploration[] = [
     name: 'Forgotten forest',
     type: TerrainType.FOREST,
     mask: [
-      [1, 0],
-      [1, 1],
-      [0, 1],
+      [0, 1, 1],
+      [1, 1, 0],
     ],
   },
   {
@@ -27,9 +26,8 @@ export const explorations: Exploration[] = [
     name: 'Farm',
     type: TerrainType.FIELDS,
     mask: [
-      [1, 0],
-      [1, 1],
-      [1, 0],
+      [0, 1, 0],
+      [1, 1, 1],
     ],
   },
   {
